@@ -1,0 +1,7 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{n}{tree} \PYG{o}{=} \PYG{p}{\PYGZob{}}\PYG{n}{best\PYGZus{}attr}\PYG{p}{:} \PYG{p}{\PYGZob{}\PYGZcb{}\PYGZcb{}}
+\PYG{c+c1}{\PYGZsh{} 예시 결과:}
+\PYG{c+c1}{\PYGZsh{} \PYGZob{}\PYGZsq{}age\PYGZsq{}: \PYGZob{}\PYGZsq{}\PYGZlt{}=30\PYGZsq{}: \PYGZob{}\PYGZsq{}student\PYGZsq{}: \PYGZob{}\PYGZsq{}yes\PYGZsq{}: \PYGZsq{}yes\PYGZsq{}, \PYGZsq{}no\PYGZsq{}: \PYGZsq{}no\PYGZsq{}\PYGZcb{}\PYGZcb{},}
+\PYG{c+c1}{\PYGZsh{}          \PYGZsq{}31...40\PYGZsq{}: \PYGZsq{}yes\PYGZsq{},}
+\PYG{c+c1}{\PYGZsh{}          \PYGZsq{}\PYGZgt{}40\PYGZsq{}: \PYGZob{}\PYGZsq{}credit\PYGZus{}rating\PYGZsq{}: \PYGZob{}\PYGZsq{}fair\PYGZsq{}: \PYGZsq{}yes\PYGZsq{}, \PYGZsq{}excellent\PYGZsq{}: \PYGZsq{}no\PYGZsq{}\PYGZcb{}\PYGZcb{}\PYGZcb{}\PYGZcb{}}
+\end{MintedVerbatim}

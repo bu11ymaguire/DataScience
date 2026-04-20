@@ -1,0 +1,3 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYGZdl{}\PYG{+w}{ }python\PYG{+w}{ }dt.py\PYG{+w}{ }dt\PYGZus{}train.txt\PYG{+w}{ }dt\PYGZus{}test.txt\PYG{+w}{ }dt\PYGZus{}result.txt
+\end{MintedVerbatim}

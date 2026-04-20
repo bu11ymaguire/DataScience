@@ -1,0 +1,5 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{k}{if} \PYG{o+ow}{not} \PYG{n+nb}{isinstance}\PYG{p}{(}\PYG{n}{tree}\PYG{p}{,} \PYG{n+nb}{dict}\PYG{p}{):}
+    \PYG{k}{return} \PYG{n}{tree}  \PYG{c+c1}{\PYGZsh{} str이면 리프 노드}
+\PYG{n}{attr\PYGZus{}name} \PYG{o}{=} \PYG{n+nb}{list}\PYG{p}{(}\PYG{n}{tree}\PYG{o}{.}\PYG{n}{keys}\PYG{p}{())[}\PYG{l+m+mi}{0}\PYG{p}{]}  \PYG{c+c1}{\PYGZsh{} dict면 내부 노드}
+\end{MintedVerbatim}

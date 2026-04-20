@@ -1,0 +1,16 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{information\PYGZus{}gain}\PYG{p}{(}\PYG{n}{data}\PYG{p}{,} \PYG{n}{attribute}\PYG{p}{,} \PYG{n}{target}\PYG{p}{):}
+    \PYG{n}{total} \PYG{o}{=} \PYG{n+nb}{len}\PYG{p}{(}\PYG{n}{data}\PYG{p}{)}
+    \PYG{n}{h\PYGZus{}before} \PYG{o}{=} \PYG{n}{entropy}\PYG{p}{(}\PYG{n}{data}\PYG{p}{,} \PYG{n}{target}\PYG{p}{)}
+    \PYG{n}{partitions} \PYG{o}{=} \PYG{p}{\PYGZob{}\PYGZcb{}}
+    \PYG{k}{for} \PYG{n}{row} \PYG{o+ow}{in} \PYG{n}{data}\PYG{p}{:}
+        \PYG{n}{val} \PYG{o}{=} \PYG{n}{row}\PYG{p}{[}\PYG{n}{attribute}\PYG{p}{]}
+        \PYG{k}{if} \PYG{n}{val} \PYG{o+ow}{not} \PYG{o+ow}{in} \PYG{n}{partitions}\PYG{p}{:}
+            \PYG{n}{partitions}\PYG{p}{[}\PYG{n}{val}\PYG{p}{]} \PYG{o}{=} \PYG{p}{[]}
+        \PYG{n}{partitions}\PYG{p}{[}\PYG{n}{val}\PYG{p}{]}\PYG{o}{.}\PYG{n}{append}\PYG{p}{(}\PYG{n}{row}\PYG{p}{)}
+    \PYG{n}{h\PYGZus{}after} \PYG{o}{=} \PYG{l+m+mf}{0.0}
+    \PYG{k}{for} \PYG{n}{subset} \PYG{o+ow}{in} \PYG{n}{partitions}\PYG{o}{.}\PYG{n}{values}\PYG{p}{():}
+        \PYG{n}{weight} \PYG{o}{=} \PYG{n+nb}{len}\PYG{p}{(}\PYG{n}{subset}\PYG{p}{)} \PYG{o}{/} \PYG{n}{total}
+        \PYG{n}{h\PYGZus{}after} \PYG{o}{+=} \PYG{n}{weight} \PYG{o}{*} \PYG{n}{entropy}\PYG{p}{(}\PYG{n}{subset}\PYG{p}{,} \PYG{n}{target}\PYG{p}{)}
+    \PYG{k}{return} \PYG{n}{h\PYGZus{}before} \PYG{o}{\PYGZhy{}} \PYG{n}{h\PYGZus{}after}
+\end{MintedVerbatim}

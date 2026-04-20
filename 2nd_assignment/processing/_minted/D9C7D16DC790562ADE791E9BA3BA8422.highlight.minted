@@ -1,0 +1,32 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{build\PYGZus{}tree}\PYG{p}{(}\PYG{n}{data}\PYG{p}{,} \PYG{n}{attributes}\PYG{p}{,} \PYG{n}{target}\PYG{p}{):}
+    \PYG{c+c1}{\PYGZsh{} 종료 조건 (1): 모든 클래스가 동일}
+    \PYG{n}{classes} \PYG{o}{=} \PYG{n+nb}{set}\PYG{p}{(}\PYG{n}{row}\PYG{p}{[}\PYG{n}{target}\PYG{p}{]} \PYG{k}{for} \PYG{n}{row} \PYG{o+ow}{in} \PYG{n}{data}\PYG{p}{)}
+    \PYG{k}{if} \PYG{n+nb}{len}\PYG{p}{(}\PYG{n}{classes}\PYG{p}{)} \PYG{o}{==} \PYG{l+m+mi}{1}\PYG{p}{:}
+        \PYG{k}{return} \PYG{n}{classes}\PYG{o}{.}\PYG{n}{pop}\PYG{p}{()}
+
+    \PYG{c+c1}{\PYGZsh{} 종료 조건 (2): 남은 속성이 없음 \PYGZhy{}\PYGZgt{} 다수결}
+    \PYG{k}{if} \PYG{n+nb}{len}\PYG{p}{(}\PYG{n}{attributes}\PYG{p}{)} \PYG{o}{==} \PYG{l+m+mi}{0}\PYG{p}{:}
+        \PYG{k}{return} \PYG{n}{Counter}\PYG{p}{(}\PYG{n}{row}\PYG{p}{[}\PYG{n}{target}\PYG{p}{]} \PYG{k}{for} \PYG{n}{row} \PYG{o+ow}{in} \PYG{n}{data}\PYG{p}{)}\PYG{o}{.}\PYG{n}{most\PYGZus{}common}\PYG{p}{(}\PYG{l+m+mi}{1}\PYG{p}{)[}\PYG{l+m+mi}{0}\PYG{p}{][}\PYG{l+m+mi}{0}\PYG{p}{]}
+
+    \PYG{n}{best\PYGZus{}attr} \PYG{o}{=} \PYG{n}{select\PYGZus{}best\PYGZus{}attribute}\PYG{p}{(}\PYG{n}{data}\PYG{p}{,} \PYG{n}{attributes}\PYG{p}{,} \PYG{n}{target}\PYG{p}{)}
+    \PYG{n}{tree} \PYG{o}{=} \PYG{p}{\PYGZob{}}\PYG{n}{best\PYGZus{}attr}\PYG{p}{:} \PYG{p}{\PYGZob{}\PYGZcb{}\PYGZcb{}}
+    \PYG{n}{majority\PYGZus{}label} \PYG{o}{=} \PYG{n}{Counter}\PYG{p}{(}
+        \PYG{n}{row}\PYG{p}{[}\PYG{n}{target}\PYG{p}{]} \PYG{k}{for} \PYG{n}{row} \PYG{o+ow}{in} \PYG{n}{data}\PYG{p}{)}\PYG{o}{.}\PYG{n}{most\PYGZus{}common}\PYG{p}{(}\PYG{l+m+mi}{1}\PYG{p}{)[}\PYG{l+m+mi}{0}\PYG{p}{][}\PYG{l+m+mi}{0}\PYG{p}{]}
+    \PYG{n}{remaining\PYGZus{}attrs} \PYG{o}{=} \PYG{p}{[}\PYG{n}{a} \PYG{k}{for} \PYG{n}{a} \PYG{o+ow}{in} \PYG{n}{attributes} \PYG{k}{if} \PYG{n}{a} \PYG{o}{!=} \PYG{n}{best\PYGZus{}attr}\PYG{p}{]}
+
+    \PYG{n}{partitions} \PYG{o}{=} \PYG{p}{\PYGZob{}\PYGZcb{}}
+    \PYG{k}{for} \PYG{n}{row} \PYG{o+ow}{in} \PYG{n}{data}\PYG{p}{:}
+        \PYG{n}{val} \PYG{o}{=} \PYG{n}{row}\PYG{p}{[}\PYG{n}{best\PYGZus{}attr}\PYG{p}{]}
+        \PYG{k}{if} \PYG{n}{val} \PYG{o+ow}{not} \PYG{o+ow}{in} \PYG{n}{partitions}\PYG{p}{:}
+            \PYG{n}{partitions}\PYG{p}{[}\PYG{n}{val}\PYG{p}{]} \PYG{o}{=} \PYG{p}{[]}
+        \PYG{n}{partitions}\PYG{p}{[}\PYG{n}{val}\PYG{p}{]}\PYG{o}{.}\PYG{n}{append}\PYG{p}{(}\PYG{n}{row}\PYG{p}{)}
+
+    \PYG{k}{for} \PYG{n}{val}\PYG{p}{,} \PYG{n}{subset} \PYG{o+ow}{in} \PYG{n}{partitions}\PYG{o}{.}\PYG{n}{items}\PYG{p}{():}
+        \PYG{k}{if} \PYG{n+nb}{len}\PYG{p}{(}\PYG{n}{subset}\PYG{p}{)} \PYG{o}{==} \PYG{l+m+mi}{0}\PYG{p}{:}
+            \PYG{n}{tree}\PYG{p}{[}\PYG{n}{best\PYGZus{}attr}\PYG{p}{][}\PYG{n}{val}\PYG{p}{]} \PYG{o}{=} \PYG{n}{majority\PYGZus{}label}
+        \PYG{k}{else}\PYG{p}{:}
+            \PYG{n}{tree}\PYG{p}{[}\PYG{n}{best\PYGZus{}attr}\PYG{p}{][}\PYG{n}{val}\PYG{p}{]} \PYG{o}{=} \PYG{n}{build\PYGZus{}tree}\PYG{p}{(}
+                \PYG{n}{subset}\PYG{p}{,} \PYG{n}{remaining\PYGZus{}attrs}\PYG{p}{,} \PYG{n}{target}\PYG{p}{)}
+    \PYG{k}{return} \PYG{n}{tree}
+\end{MintedVerbatim}

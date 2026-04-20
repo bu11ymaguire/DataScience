@@ -1,0 +1,733 @@
+\documentclass[12pt, a4paper]{article}
+
+% ===== 패키지 =====
+\usepackage{fontspec}         % XeLaTeX/LuaLaTeX 폰트 설정
+\usepackage{kotex}            % 한글 지원
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\usepackage{minted}           % 코드 삽입 (XeLaTeX + shell-escape 필요)
+\usepackage{xcolor}           % 색상
+\usepackage{booktabs}         % 깔끔한 표
+\usepackage{amsmath, amssymb} % 수식
+\usepackage{hyperref}         % 하이퍼링크
+\usepackage{graphicx}         % 이미지
+\usepackage{enumitem}         % 리스트 커스텀
+\usepackage{caption}
+\usepackage{adjustbox}        % 큰 표 너비 조절용
+\usepackage{pifont}           % 체크마크 기호용
+\newcommand{\cmark}{\ding{51}}
+\usepackage{tikz}             % 순서도 도형
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning}
+
+% ===== 코드 스타일 =====
+\setminted[python]{
+    bgcolor=black!5,
+    linenos=true,
+    breaklines=true,
+    fontsize=\small,
+    frame=lines,
+    framesep=2mm
+}
+
+% ===== 문서 정보 =====
+% 제목/저자 정보는 커스텀 헤더로 직접 구성
+
+% ========================================
+\begin{document}
+
+% ===== 커스텀 헤더 (제목 페이지 없이 바로 시작) =====
+\begin{center}
+    {\Large\bfseries Programming Assignment \#1}\\[0.4em]
+    {\large\bfseries Apriori 알고리즘을 이용한 연관 규칙 마이닝}\\[1em]
+    {\normalsize
+        \textbf{과목:} Data Science (ITE4005) \quad
+        \textbf{학번:} 2023036299 \quad
+        \textbf{이름:} 김진욱 \quad
+        \textbf{2026.03.11}\\[0.3em]
+        \textbf{OS:} Windows 10/11 \quad
+        \textbf{Python:} 3.12.10 \quad
+        \textbf{라이브러리:} 표준 라이브러리 (\texttt{sys}, \texttt{itertools})
+    }
+\end{center}
+\vspace{0.5em}
+\hrule
+\vspace{1em}
+% ============================================================
+\section{알고리즘 요약}
+% ============================================================
+
+\subsection{Apriori 알고리즘 개요}
+
+Apriori 알고리즘은 트랜잭션 데이터베이스에서 빈발 항목 집합(Frequent Itemset)을 찾고, 이를 바탕으로 연관 규칙(Association Rule)을 생성하는 알고리즘이다. 핵심 원리는 \textbf{Apriori Principle}으로, ``빈발하지 않은 항목 집합의 상위 집합은 절대 빈발할 수 없다''는 성질을 이용해 후보 집합을 효율적으로 가지치기한다.
+
+\subsection{전체 순서도}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+    node distance=0.75cm and 2cm,
+    box/.style={rectangle, rounded corners=5pt, draw=black!70, fill=blue!8,
+                minimum width=7cm, minimum height=0.8cm,
+                align=center, font=\small},
+    loopbox/.style={rectangle, rounded corners=5pt, draw=black!60, fill=orange!10,
+                    minimum width=7cm, minimum height=1.3cm,
+                    align=center, font=\small},
+    dec/.style={diamond, draw=black!70, fill=yellow!20,
+                minimum width=2.5cm, minimum height=0.8cm,
+                align=center, font=\small, aspect=3},
+    arr/.style={->, thick, draw=black!60}
+]
+\node[box] (start)   {시작};
+\node[box, below=of start]   (parse)   {\texttt{explain\_input\_parsing()} \\ 입력 파일 파싱};
+\node[box, below=of parse]   (l1)      {\texttt{get\_frequent\_1\_itemsets()} \\ $L_1$ 생성 · $k = 2$ 설정};
+\node[loopbox, below=of l1]  (gen)     {\texttt{apriori\_gen()} --- $C_k$ 후보 생성 \\ \texttt{get\_frequent\_k\_itemsets()} --- $L_k$ 계산};
+\node[dec, below=of gen]     (empty)   {$L_k = \emptyset$?};
+\node[box, below=of empty]   (rules)   {\texttt{generate\_rules\_and\_output()} \\ 연관 규칙 생성 및 출력};
+\node[box, below=of rules]   (end)     {종료};
+
+\draw[arr] (start)  -- (parse);
+\draw[arr] (parse)  -- (l1);
+\draw[arr] (l1)     -- (gen);
+\draw[arr] (gen)    -- (empty);
+\draw[arr] (empty)  -- node[right, font=\small]{\textbf{Yes}} (rules);
+\draw[arr] (rules)  -- (end);
+\draw[arr] (empty.east) -- node[above, font=\small]{\textbf{No} ($k$++)} ++(2.4,0) |- (gen.east);
+\end{tikzpicture}
+\caption{Apriori 알고리즘 전체 순서도}
+\end{figure}
+
+\subsection{핵심 자료 흐름}
+
+\begin{verbatim}
+L1(dict) -> keys -> apriori_gen -> C2(list) -> get_frequent_k -> L2(dict) -> keys -> ...
+\end{verbatim}
+
+각 단계에서 빈발 항목 집합($L_k$)은 \textbf{딕셔너리} (\texttt{\{frozenset: 등장횟수\}}), 후보 집합($C_k$)은 \textbf{리스트} (\texttt{[frozenset, ...]})로 관리된다.
+
+
+% ============================================================
+\section{각 함수별 코드 상세 설명}
+% ============================================================
+
+% --- 2.1 ---
+\subsection{\texttt{explain\_input\_parsing(input\_file)} --- 데이터 로드}
+
+입력 텍스트 파일을 읽어 트랜잭션 리스트로 변환한다.
+
+\begin{minted}{python}
+def explain_input_parsing(input_file):
+    transactions = []
+    try:
+        with open(input_file, 'r', encoding='utf-8') as f:
+            for line_number, line in enumerate(f, start=1):
+                items_str_list = line.strip().split()
+                if not items_str_list:
+                    continue
+                transaction = set(int(item) for item in items_str_list)
+                transactions.append(transaction)
+    except FileNotFoundError:
+        return None
+    return transactions
+\end{minted}
+
+\noindent\textbf{핵심 설계 결정:}
+\begin{itemize}
+    \item 각 트랜잭션을 \texttt{set}으로 저장한다. 이후 후보 집합의 포함 여부를 \texttt{issubset()} 메서드로 $O(k)$에 판별하기 위함이다.
+    \item \texttt{FileNotFoundError} 예외 처리로 파일이 없을 경우 \texttt{None}을 반환한다.
+\end{itemize}
+
+
+% --- 2.2 ---
+\subsection{\texttt{get\_frequent\_1\_itemsets(transactions, min\_sup\_percent)} --- $L_1$ 생성}
+
+길이가 1인 빈발 항목 집합을 생성한다.
+
+\begin{minted}{python}
+def get_frequent_1_itemsets(transactions, min_sup_percent):
+    n_transactions = len(transactions)
+    min_count = n_transactions * (min_sup_percent / 100.0)
+
+    item_counts = {}
+    for transaction in transactions:
+        for item in transaction:
+            if item in item_counts:
+                item_counts[item] += 1
+            else:
+                item_counts[item] = 1
+
+    L1 = {}
+    sorted_items = sorted(item_counts.items())
+    for item, count in sorted_items:
+        if count >= min_count:
+            itemset = frozenset({item})
+            L1[itemset] = count
+    return L1
+\end{minted}
+
+\noindent\textbf{핵심 설계 결정:}
+\begin{itemize}
+    \item \texttt{frozenset} 사용: 파이썬의 일반 \texttt{set}은 mutable이므로 딕셔너리의 키로 사용 불가. \texttt{frozenset}은 immutable이므로 키로 사용 가능하며, 이후 합집합 연산(\texttt{|}) 시에도 자동으로 \texttt{frozenset} 타입이 유지된다.
+    \item 딕셔너리 구조 (\texttt{\{frozenset: count\}}): 신뢰도(Confidence)를 계산할 때 \texttt{result[antecedent]}로 등장 횟수를 즉시 조회해야 하므로, 단순 리스트가 아닌 딕셔너리를 채택하였다.
+\end{itemize}
+
+
+% --- 2.3 ---
+\subsection{\texttt{apriori\_gen(L\_prev, k)} --- 후보 집합 $C_k$ 생성}
+
+이전 단계의 빈발 항목 집합($L_{k-1}$)으로부터 길이 $k$의 후보 집합을 생성한다.
+
+\begin{minted}{python}
+def apriori_gen(L_prev, k):
+    Ck = []
+    len_L = len(L_prev)
+    for i in range(len_L):
+        for j in range(i+1, len_L):
+            list_i = list(L_prev[i])
+            list_j = list(L_prev[j])
+            list_i.sort()
+            list_j.sort()
+            if list_i[:k-2] == list_j[:k-2]:
+                candidate = L_prev[i] | L_prev[j]
+                if candidate not in Ck:
+                    Ck.append(candidate)
+    return Ck
+\end{minted}
+
+\noindent\textbf{핵심 설계 결정 --- 최적화된 Join Step:}
+\begin{itemize}
+    \item 단순히 모든 쌍의 합집합을 구하고 길이를 검사하는 대신, \textbf{오름차순 정렬 후 앞쪽 $k{-}2$개 원소가 동일한 경우에만} 합집합을 수행한다.
+    \item $k{-}2$인 이유: 입력 원소의 길이가 $k{-}1$이고, 마지막 1개만 달라야 합집합 결과가 정확히 길이 $k$가 되므로 비교 대상은 $(k{-}1) - 1 = k{-}2$개이다.
+    \item 예시: $k=3$일 때 \texttt{[1,2]}와 \texttt{[1,3]}은 앞의 1개(\texttt{[:1]} = \texttt{[1]})가 같으므로 합쳐서 \texttt{\{1,2,3\}} 생성. 반면 \texttt{[1,2]}와 \texttt{[3,4]}는 앞이 다르므로 건너뛴다.
+\end{itemize}
+
+
+% --- 2.4 ---
+\subsection{\texttt{get\_frequent\_k\_itemsets(transactions, min\_sup\_percent, Ck)} --- $L_k$ 생성}
+
+후보 집합의 각 원소가 전체 트랜잭션에서 몇 번 등장하는지 세고, 최소 지지도를 넘는 것만 골라 $L_k$를 만든다.
+
+\begin{minted}{python}
+def get_frequent_k_itemsets(transactions, min_sup_percent, Ck):
+    n_transactions = len(transactions)
+    min_count = n_transactions * (min_sup_percent / 100.0)
+    candidate_counts = {candidate: 0 for candidate in Ck}
+    for transaction in transactions:
+        for candidate in Ck:
+            if candidate.issubset(transaction):
+                candidate_counts[candidate] += 1
+    Lk = {}
+    for candidate, count in candidate_counts.items():
+        if count >= min_count:
+            Lk[candidate] = count
+    return Lk
+\end{minted}
+
+\noindent\textbf{핵심 설계 결정:}
+\begin{itemize}
+    \item \texttt{frozenset.issubset(set)} 메서드를 사용하여 후보 집합의 모든 원소가 해당 트랜잭션에 포함되는지를 효율적으로 검사한다.
+    \item 지지도 기준(\texttt{min\_count})은 항상 \textbf{전체 트랜잭션 수}를 기준으로 계산한다 (후보 집합 수가 아님).
+\end{itemize}
+
+
+% --- 2.5 ---
+\subsection{\texttt{find\_freq(minimum\_support, input\_file)} --- Apriori 메인 루프}
+
+$L_1$부터 시작하여 $L_k$가 빌 때까지 반복하며 모든 빈발 항목 집합을 하나의 딕셔너리에 모은다.
+
+\begin{minted}{python}
+def find_freq(minimum_support, input_file):
+    result = {}
+    transactions = explain_input_parsing(input_file)
+    k = 1
+    previous = {}
+    while True:
+        Lk = {}
+        if k == 1:
+            Lk = get_frequent_1_itemsets(transactions, minimum_support)
+        else:
+            candidates = apriori_gen(list(previous.keys()), k)
+            Lk = get_frequent_k_itemsets(transactions, minimum_support, candidates)
+        if len(Lk) == 0:
+            break
+        else:
+            result.update(Lk)
+            previous = Lk
+            k += 1
+    return result
+\end{minted}
+
+\noindent\textbf{핵심 설계 결정:}
+\begin{itemize}
+    \item \texttt{list(previous.keys())}: 딕셔너리의 키만 추출하여 리스트로 변환 후 \texttt{apriori\_gen}에 전달한다. \texttt{apriori\_gen}은 인덱스 기반 접근(\texttt{L\_prev[i]})을 사용하므로 반드시 리스트가 필요하다.
+    \item \texttt{result.update(Lk)}: 각 단계의 $L_k$ 딕셔너리를 하나의 \texttt{result} 딕셔너리에 병합한다. 이렇게 모든 길이의 빈발 집합과 등장 횟수를 한곳에 축적함으로써, 이후 연관 규칙 생성 시 추가 데이터베이스 스캔 없이 지지도/신뢰도를 계산할 수 있다.
+\end{itemize}
+
+
+% --- 2.6 ---
+\subsection{\texttt{format\_set(itemset)} --- 출력 포맷팅}
+
+\texttt{frozenset}을 과제 출력 포맷인 \texttt{\{1,2,3\}} 형태의 문자열로 변환한다.
+
+\begin{minted}{python}
+def format_set(itemset):
+    str_itmes = [str(item) for item in sorted(itemset)]
+    joined_items = ",".join(str_itmes)
+    return f"{{{joined_items}}}"
+\end{minted}
+
+\begin{itemize}
+    \item \texttt{sorted()}로 아이템을 오름차순 정렬하여 출력 일관성을 보장한다.
+    \item f-string의 이중 중괄호(\texttt{\{\{}}, \texttt{\}\}})를 활용하여 리터럴 \texttt{\{\}}를 출력한다.
+\end{itemize}
+
+
+% --- 2.7 ---
+\subsection{\texttt{generate\_rules\_and\_output(result, n\_transactions, output\_file)} --- 연관 규칙 생성 및 파일 출력}
+
+모든 빈발 항목 집합에서 가능한 연관 규칙을 생성하고, 지지도/신뢰도를 계산하여 파일에 출력한다.
+
+\begin{minted}{python}
+def generate_rules_and_output(result, n_transactions, output_file):
+    try:
+        with open(output_file, 'w', encoding='utf-8') as f:
+            for itemset in result.keys():
+                length = len(itemset)
+                if length < 2:
+                    continue
+                for r in range(1, length):
+                    for subset in combinations(itemset, r):
+                        antecedent = frozenset(subset)
+                        consequent = itemset - antecedent
+                        sup = (result[itemset] / n_transactions) * 100
+                        conf = (result[itemset] / result[antecedent]) * 100
+                        ant_str = format_set(antecedent)
+                        con_str = format_set(consequent)
+                        line = f"{ant_str}\t{con_str}\t{sup:.2f}\t{conf:.2f}\n"
+                        f.write(line)
+    except IOError:
+        print(f"Error: Could not write to file '{output_file}'")
+\end{minted}
+
+\noindent\textbf{핵심 설계 결정:}
+\begin{itemize}
+    \item \texttt{itertools.combinations(itemset, r)}: 빈발 항목 집합에서 길이 \texttt{r}인 모든 부분집합을 생성한다. 이 부분집합이 \textbf{조건절(antecedent)}이 되고, 나머지(\texttt{itemset - antecedent})가 \textbf{결과절(consequent)}이 된다.
+    \item \textbf{지지도 (Support)}: $\frac{\text{result[itemset]}}{N} \times 100$ --- 전체 트랜잭션 대비 해당 집합의 등장 비율.
+    \item \textbf{신뢰도 (Confidence)}: $\frac{\text{result[itemset]}}{\text{result[antecedent]}} \times 100$ --- 조건절을 포함하는 트랜잭션 중 전체 집합도 포함하는 비율 (조건부 확률).
+    \item 동일한 아이템 쌍에서도 방향에 따라 신뢰도가 달라지므로($\{A\}\to\{B\} \neq \{B\}\to\{A\}$), 모든 방향의 규칙을 빠짐없이 생성한다.
+    \item \texttt{:.2f} 포맷 지정자로 소수점 둘째 자리까지 반올림하여 과제 요구사항을 충족한다.
+\end{itemize}
+
+
+% ============================================================
+\section{소스 코드 컴파일 및 실행 방법}
+% ============================================================
+
+\subsection{실행 환경}
+\begin{itemize}
+    \item \textbf{OS}: Windows 10/11
+    \item \textbf{Python}: 3.12.10
+    \item \textbf{추가 라이브러리}: 없음 (표준 라이브러리 \texttt{sys}, \texttt{itertools}만 사용)
+\end{itemize}
+
+\subsection{실행 명령어}
+
+\begin{verbatim}
+python apriori.py [최소지지도(%)] [입력파일] [출력파일]
+\end{verbatim}
+
+\subsection{실행 예시}
+
+\begin{verbatim}
+python apriori.py 5 input.txt output.txt
+\end{verbatim}
+
+위 명령어는 다음을 수행한다:
+\begin{enumerate}
+    \item \texttt{input.txt}에서 트랜잭션 데이터를 읽는다.
+    \item 최소 지지도 5\%를 기준으로 빈발 항목 집합을 찾는다.
+    \item 모든 연관 규칙을 생성하여 \texttt{output.txt}에 저장한다.
+\end{enumerate}
+
+\subsection{파일 구조}
+
+\begin{verbatim}
+Data_Science_Assignment/
+├── apriori.py      <- 실행 파일 (소스 코드)
+├── input.txt       <- 입력 데이터
+└── output.txt      <- 출력 결과 (실행 후 자동 생성)
+\end{verbatim}
+
+\noindent\textbf{주의}: 실행 파일, 입력 파일, 출력 파일은 반드시 \textbf{같은 폴더}에 위치해야 한다.
+
+\subsection{실행 화면}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\textwidth]{assignemnt_실행.png}
+    \caption{터미널에서 \texttt{python apriori.py 5 input.txt output.txt} 실행 화면}
+\end{figure}
+
+% ============================================================
+\section{개발 과정 및 설계 결정 상세 기록}
+% ============================================================
+
+
+\subsection{초기 접근 방식에 대한 재고}
+
+처음에는 Apriori 의사코드(pseudocode)를 그대로 구현하는 방식으로 접근하였으나, 단순 구현만으로는 각 단계의 의미를 충분히 파악하기 어렵다고 판단하였다. 이에 따라 \textbf{의사코드의 각 단계를 하나씩 분해하여 점진적으로 구현하는 방식}으로 전환하였다.
+
+핵심 질문은 다음과 같았다:
+
+\begin{quote}
+``길이가 1인 원소를 담는 배열부터 시작하여, 특정 길이의 배열이 더 이상 생성되지 않을 때까지 해당 로직을 반복할 것인가?''
+\end{quote}
+
+이 질문에 대한 답이 곧 Apriori 메인 루프(\texttt{find\_freq})의 구조가 되었다.
+
+
+\subsection{트랜잭션 데이터의 자료구조 선택}
+
+입력 파일의 각 줄(트랜잭션)을 어떤 자료구조로 저장할지 검토하였다.
+
+\begin{table}[h]
+\centering
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{lll}
+\toprule
+\textbf{자료구조} & \textbf{장점} & \textbf{단점} \\
+\midrule
+\texttt{list} & 순서 보존, 인덱스 접근 가능 & 포함 여부 검사가 $O(n)$ \\
+\texttt{set}  & \texttt{issubset()} 검사가 $O(k)$로 빠름 & 순서 없음 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\caption{트랜잭션 자료구조 비교}
+\end{table}
+
+\noindent\textbf{결론: \texttt{set} 채택.} Apriori 알고리즘에서 후보 집합의 포함 여부를 트랜잭션별로 반복 검사해야 하므로, \texttt{issubset()} 연산의 효율성이 결정적이었다.
+
+\begin{minted}{python}
+# 최종 구현
+transaction = set(int(item) for item in items_str_list)
+\end{minted}
+
+
+\subsection{빈발 항목 집합($L_k$) 저장 자료구조: \texttt{list} $\to$ \texttt{dict}}
+
+처음에는 $L_1$을 단순 리스트로 구현하려 했으나, 이후 \textbf{연관 규칙의 신뢰도 계산} 시 각 집합의 등장 횟수(count)를 즉시 조회해야 한다는 점을 깨달았다.
+
+\begin{minted}{python}
+# 초기 구현 (리스트) -- 등장 횟수를 알 수 없음
+L1 = [frozenset({0}), frozenset({1}), ...]
+
+# 최종 구현 (딕셔너리) -- 등장 횟수를 바로 조회 가능
+L1 = {frozenset({0}): 134, frozenset({1}): 149, ...}
+\end{minted}
+
+딕셔너리로 변경함으로써, 마지막 연관 규칙 생성 단계에서 \texttt{result[antecedent]}로 등장 횟수를 $O(1)$에 조회할 수 있게 되었다.
+
+\subsubsection*{\texttt{frozenset} 도입 배경}
+
+딕셔너리의 키로 집합을 사용하려면 \textbf{immutable(변경 불가능)} 타입이어야 한다. 파이썬의 일반 \texttt{set}은 mutable이므로 키로 사용할 수 없다.
+
+\begin{table}[h]
+\centering
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{llll}
+\toprule
+\textbf{타입} & \textbf{mutable 여부} & \textbf{딕셔너리 키 사용} & \textbf{합집합 연산 결과} \\
+\midrule
+\texttt{set}       & O (변경 가능) & 불가 & \texttt{set} \\
+\texttt{frozenset} & X (변경 불가) & 가능 & \texttt{frozenset} \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\caption{\texttt{set} vs \texttt{frozenset} 비교}
+\end{table}
+
+
+\subsection{후보 집합($C_k$)과 빈발 집합($L_k$)의 자료구조 분리}
+
+구현 중 \texttt{Ck = \{\}}(딕셔너리)로 초기화한 뒤 \texttt{Ck.append()}를 사용하여 문법 오류가 발생하였다. 이를 계기로 $C_k$와 $L_k$의 역할 차이를 명확히 정리하였다.
+
+\begin{table}[h]
+\centering
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{llll}
+\toprule
+\textbf{자료구조} & \textbf{역할} & \textbf{타입} & \textbf{이유} \\
+\midrule
+$L_k$ & 합격자 + 성적표 & \texttt{dict\{frozenset: int\}} & 등장 횟수를 키로 즉시 조회 \\
+$C_k$ & 후보자 명단     & \texttt{list[frozenset]}        & 아직 카운팅 전, 순회에 적합 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\caption{$L_k$와 $C_k$ 자료구조 비교}
+\end{table}
+
+전체 자료 흐름은 \textbf{L(dict) $\to$ keys 추출 $\to$ apriori\_gen $\to$ C(list) $\to$ get\_frequent\_k $\to$ L(dict)} 순환 구조이다.
+
+\begin{minted}{python}
+# 변경 전 (오류)
+Ck = {}           # 딕셔너리
+Ck.append(...)    # AttributeError
+
+# 변경 후
+Ck = []           # 리스트
+Ck.append(...)    # 정상 동작
+\end{minted}
+
+
+\subsection{후보 생성 최적화: 단순 합집합 $\to$ $k{-}2$ 슬라이싱}
+
+\textbf{초기 구현}에서는 모든 쌍의 합집합을 구한 뒤 \texttt{len(candidate) == k}로 필터링하였다:
+
+\begin{minted}{python}
+# 초기 구현 (단순 방식)
+candidate = L_prev[i] | L_prev[j]
+if len(candidate) == k and candidate not in Ck:
+    Ck.append(candidate)
+\end{minted}
+
+이를 개선하기 위해 Apriori 논문의 \textbf{Join Step 최적화}를 도입하였다:
+
+\begin{quote}
+두 집합을 오름차순 정렬했을 때, \textbf{앞의 $k{-}2$개 원소가 동일하고 마지막 1개만 다를 때에만 합친다.}
+\end{quote}
+
+\begin{minted}{python}
+# 최종 구현 (최적화 방식)
+list_i = list(L_prev[i])
+list_j = list(L_prev[j])
+list_i.sort()
+list_j.sort()
+if list_i[:k-2] == list_j[:k-2]:
+    candidate = L_prev[i] | L_prev[j]
+    if candidate not in Ck:
+        Ck.append(candidate)
+\end{minted}
+
+\noindent\textbf{$k{-}2$ 슬라이싱의 수학적 근거:}
+\begin{itemize}
+    \item 입력 원소의 길이 $= k{-}1$
+    \item 마지막 1개만 달라야 합집합 길이가 정확히 $k$가 됨
+    \item 따라서 비교 대상 $= (k{-}1) - 1 = k{-}2$개
+\end{itemize}
+
+\noindent\textbf{구체적 예시:}
+\begin{itemize}
+    \item $L_2 \to C_3$ ($k=3$): \texttt{[1,2]}와 \texttt{[1,3]}은 \texttt{[:1]}이 \texttt{[1]}로 같으므로 합격 $\to$ \texttt{\{1,2,3\}} 생성
+    \item $L_3 \to C_4$ ($k=4$): \texttt{[1,2,3]}과 \texttt{[1,2,4]}는 \texttt{[:2]}가 \texttt{[1,2]}로 같으므로 합격 $\to$ \texttt{\{1,2,3,4\}} 생성
+    \item $L_2 \to C_3$ ($k=3$): \texttt{[1,2]}와 \texttt{[3,4]}는 \texttt{[:1]}이 다름 $\to$ 건너뜀
+\end{itemize}
+
+
+\subsection{메인 루프 구현 과정에서의 파이썬 문법 이슈}
+
+메인 루프(\texttt{find\_freq}) 구현 과정에서 여러 파이썬 고유 문법 이슈를 발견하고 수정하였다.
+
+\subsubsection*{(1) 빈 딕셔너리 검사: \texttt{is \{\}} $\to$ \texttt{len() == 0}}
+
+\begin{minted}{python}
+# 변경 전 (잘못된 방식 -- 무한루프 위험)
+if (process is {}):
+    break
+
+# 변경 후 (올바른 방식)
+if len(Lk) == 0:
+    break
+\end{minted}
+
+파이썬에서 \texttt{is} 연산자는 객체의 \textbf{메모리 주소(identity)}를 비교한다. 두 빈 딕셔너리는 동일한 값이지만 서로 다른 객체이므로 \texttt{is}로 비교하면 항상 \texttt{False}가 되어 무한루프에 빠진다.
+
+\subsubsection*{(2) 딕셔너리 병합: \texttt{append()} $\to$ \texttt{update()}}
+
+\begin{minted}{python}
+# 변경 전 (오류)
+result.append(process)
+
+# 변경 후 (정상)
+result.update(Lk)
+\end{minted}
+
+\texttt{update()}는 인자로 받은 딕셔너리의 모든 키-값 쌍을 \texttt{result}에 병합한다.
+
+\subsubsection*{(3) \texttt{apriori\_gen} 인자 타입: \texttt{dict} $\to$ \texttt{list}}
+
+\begin{minted}{python}
+# 변경 전 (오류)
+apriori_gen(previous, k)
+
+# 변경 후 (정상)
+apriori_gen(list(previous.keys()), k)
+\end{minted}
+
+\texttt{apriori\_gen}은 \texttt{L\_prev[i]}와 같은 인덱스 기반 접근을 사용하므로, 딕셔너리를 그대로 전달하면 에러가 발생한다.
+
+
+\subsection{출력 포맷과 순서쌍(방향성) 논의}
+
+예시 출력 파일을 분석한 결과, 같은 아이템 쌍에 대해 \textbf{두 줄}이 출력됨을 발견하였다:
+
+\begin{verbatim}
+{1}  {8}  15.40  51.68
+{8}  {1}  15.40  34.07
+\end{verbatim}
+
+\begin{itemize}
+    \item \textbf{지지도(Support)}: 전체 트랜잭션 대비 확률이므로 \textbf{순서 무관} $\to$ 둘 다 15.40\%
+    \item \textbf{신뢰도(Confidence)}: 조건부 확률이므로 \textbf{순서에 따라 달라짐} $\to$ 분모(조건절의 등장 횟수)가 다르기 때문
+\end{itemize}
+
+
+\subsection{f-string 포맷팅 수정}
+
+파일 출력 시 f-string 문법 오류를 발견하고 수정하였다.
+
+\begin{minted}{python}
+# 변경 전 (오류)
+f.write(f"{format_set(antecedent)}+'\t'+{format_set(consequent)}+'\t'+...")
+
+# 변경 후 (정상)
+f.write(f"{format_set(antecedent)}\t{format_set(consequent)}\t{support:.2f}\t{confidence:.2f}\n")
+\end{minted}
+
+\texttt{:.2f} 포맷 지정자를 도입하여 \textbf{소수점 둘째 자리 반올림} 요구사항도 동시에 해결하였다.
+
+
+\subsection{함수 이름 및 변수명 가독성 리팩토링}
+
+코드 완성 후 가독성 향상을 위해 함수명과 변수명을 다음과 같이 리팩토링하였다.
+
+\begin{table}[h]
+\centering
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{lll}
+\toprule
+\textbf{변경 전} & \textbf{변경 후} & \textbf{변경 이유} \\
+\midrule
+\texttt{main\_function} & \texttt{find\_freq} & 함수의 실제 역할(빈발 집합 찾기)을 반영 \\
+\texttt{input} (인자명) & \texttt{input\_file} & 파이썬 내장 함수 \texttt{input()}과 이름 충돌 방지 \\
+\texttt{output} (인자) & 삭제 & 함수 내에서 사용되지 않는 불필요한 인자 \\
+\texttt{process} (변수) & \texttt{Lk} & Apriori 논문 표기법과 일치시켜 의미 명확화 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\caption{리팩토링 내역}
+\end{table}
+
+
+\subsection{각 함수별 자료구조 상세}
+
+각 함수에서 사용되는 핵심 자료구조를 정리하면 다음과 같다.
+
+\begin{table}[h]
+\centering
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{lll}
+\toprule
+\textbf{변수} & \textbf{타입} & \textbf{설명} \\
+\midrule
+\multicolumn{3}{l}{\textit{explain\_input\_parsing}} \\
+\texttt{transactions} & \texttt{list[set[int]]} & 전체 트랜잭션 목록 \\
+\texttt{transaction}  & \texttt{set[int]}       & 개별 트랜잭션 \\
+\midrule
+\multicolumn{3}{l}{\textit{get\_frequent\_1\_itemsets}} \\
+\texttt{item\_counts} & \texttt{dict[int, int]}      & 개별 아이템 $\to$ 등장 횟수 \\
+\texttt{L1}           & \texttt{dict[frozenset, int]} & 빈발 1-아이템셋 $\to$ 등장 횟수 \\
+\midrule
+\multicolumn{3}{l}{\textit{apriori\_gen}} \\
+\texttt{L\_prev}          & \texttt{list[frozenset]}  & 이전 단계 빈발 집합의 키 리스트 \\
+\texttt{Ck}               & \texttt{list[frozenset]}  & 새로 생성된 후보 집합 리스트 \\
+\texttt{list\_i, list\_j} & \texttt{list[int]}        & $k{-}2$ 비교를 위해 정렬된 임시 리스트 \\
+\midrule
+\multicolumn{3}{l}{\textit{get\_frequent\_k\_itemsets}} \\
+\texttt{candidate\_counts} & \texttt{dict[frozenset, int]} & 후보 $\to$ 등장 횟수 카운터 \\
+\texttt{Lk}                & \texttt{dict[frozenset, int]} & 합격한 빈발 $k$-아이템셋 $\to$ 등장 횟수 \\
+\midrule
+\multicolumn{3}{l}{\textit{find\_freq}} \\
+\texttt{result}   & \texttt{dict[frozenset, int]} & 모든 $L_k$를 합친 최종 빈발 항목 집합 \\
+\texttt{previous} & \texttt{dict[frozenset, int]} & 직전 단계의 $L_k$ \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\caption{함수별 핵심 자료구조 정리}
+\end{table}
+
+\subsubsection*{\texttt{generate\_rules\_and\_output}에서의 규칙 생성 예시}
+
+빈발 집합 $\{1, 2, 3\}$으로부터 생성되는 6가지 규칙:
+
+\begin{table}[h]
+\centering
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{llll}
+\toprule
+\textbf{조건절} & \textbf{결과절} & \textbf{지지도} & \textbf{신뢰도} \\
+\midrule
+$\{1\}$   & $\{2,3\}$ & $\frac{\text{result}[\{1,2,3\}]}{N} \times 100$ & $\frac{\text{result}[\{1,2,3\}]}{\text{result}[\{1\}]} \times 100$ \\
+$\{2\}$   & $\{1,3\}$ & 동일 & $\frac{\text{result}[\{1,2,3\}]}{\text{result}[\{2\}]} \times 100$ \\
+$\{3\}$   & $\{1,2\}$ & 동일 & $\frac{\text{result}[\{1,2,3\}]}{\text{result}[\{3\}]} \times 100$ \\
+$\{1,2\}$ & $\{3\}$   & 동일 & $\frac{\text{result}[\{1,2,3\}]}{\text{result}[\{1,2\}]} \times 100$ \\
+$\{1,3\}$ & $\{2\}$   & 동일 & $\frac{\text{result}[\{1,2,3\}]}{\text{result}[\{1,3\}]} \times 100$ \\
+$\{2,3\}$ & $\{1\}$   & 동일 & $\frac{\text{result}[\{1,2,3\}]}{\text{result}[\{2,3\}]} \times 100$ \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\caption{빈발 집합 $\{1,2,3\}$에서의 규칙 생성 예시}
+\end{table}
+
+
+% ============================================================
+\section{테스트 결과}
+% ============================================================
+
+\subsection{실행 조건}
+
+\begin{verbatim}
+python apriori.py 5 input.txt output.txt
+\end{verbatim}
+
+\subsection{검증 결과}
+
+\begin{table}[h]
+\centering
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{ll}
+\toprule
+\textbf{검증 항목} & \textbf{결과} \\
+\midrule
+총 생성 규칙 수               & 1,066개 \\
+출력 컬럼 수 (탭 구분)        & 모든 줄 4개 컬럼 \cmark \\
+중괄호 포맷 (\texttt{\{\}})   & 모든 아이템셋 적용 \cmark \\
+소수점 둘째 자리 반올림       & 모든 지지도/신뢰도 \texttt{XX.XX} 형식 \cmark \\
+쌍방향 규칙 생성              & $\{A\}\to\{B\}$ 와 $\{B\}\to\{A\}$ 모두 출력 \cmark \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\caption{출력 검증 결과}
+\end{table}
+
+\subsection{출력 샘플}
+
+\noindent\textbf{2-아이템 규칙:}
+\begin{verbatim}
+{0}    {1}    6.60    24.63
+{1}    {0}    6.60    22.15
+\end{verbatim}
+$\to$ 지지도 동일(6.60\%), 신뢰도 상이(24.63\% vs 22.15\%) --- 정상
+
+\vspace{0.5em}
+\noindent\textbf{3-아이템 규칙:}
+\begin{verbatim}
+{0}    {8,16}    6.60    24.63
+{8}    {0,16}    6.60    14.60
+{16}   {0,8}     6.60    15.57
+{0,8}  {16}      6.60    55.93
+{0,16} {8}       6.60    64.71
+{8,16} {0}       6.60    21.85
+\end{verbatim}
+$\to$ 빈발 집합 $\{0,8,16\}$에서 가능한 6가지 규칙 모두 생성 --- 정상
+
+
+\end{document}

@@ -1,0 +1,12 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{predict\PYGZus{}one}\PYG{p}{(}\PYG{n}{tree}\PYG{p}{,} \PYG{n}{row}\PYG{p}{,} \PYG{n}{default\PYGZus{}label}\PYG{p}{):}
+    \PYG{k}{if} \PYG{o+ow}{not} \PYG{n+nb}{isinstance}\PYG{p}{(}\PYG{n}{tree}\PYG{p}{,} \PYG{n+nb}{dict}\PYG{p}{):}   \PYG{c+c1}{\PYGZsh{} str이면 리프 노드}
+        \PYG{k}{return} \PYG{n}{tree}
+    \PYG{n}{attr\PYGZus{}name} \PYG{o}{=} \PYG{n+nb}{list}\PYG{p}{(}\PYG{n}{tree}\PYG{o}{.}\PYG{n}{keys}\PYG{p}{())[}\PYG{l+m+mi}{0}\PYG{p}{]} \PYG{c+c1}{\PYGZsh{} dict이면 내부 노드}
+    \PYG{n}{branches} \PYG{o}{=} \PYG{n}{tree}\PYG{p}{[}\PYG{n}{attr\PYGZus{}name}\PYG{p}{]}
+    \PYG{n}{attr\PYGZus{}value} \PYG{o}{=} \PYG{n}{row}\PYG{o}{.}\PYG{n}{get}\PYG{p}{(}\PYG{n}{attr\PYGZus{}name}\PYG{p}{)}
+    \PYG{k}{if} \PYG{n}{attr\PYGZus{}value} \PYG{o+ow}{in} \PYG{n}{branches}\PYG{p}{:}
+        \PYG{k}{return} \PYG{n}{predict\PYGZus{}one}\PYG{p}{(}\PYG{n}{branches}\PYG{p}{[}\PYG{n}{attr\PYGZus{}value}\PYG{p}{],} \PYG{n}{row}\PYG{p}{,} \PYG{n}{default\PYGZus{}label}\PYG{p}{)}
+    \PYG{k}{else}\PYG{p}{:}
+        \PYG{k}{return} \PYG{n}{default\PYGZus{}label}          \PYG{c+c1}{\PYGZsh{} 미등록 속성값 예외 처리}
+\end{MintedVerbatim}

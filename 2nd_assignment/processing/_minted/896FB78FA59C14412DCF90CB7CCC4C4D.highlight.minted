@@ -1,0 +1,3 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+python\PYG{+w}{ }dt.py\PYG{+w}{ }\PYG{o}{[}학습파일\PYG{o}{]}\PYG{+w}{ }\PYG{o}{[}테스트파일\PYG{o}{]}\PYG{+w}{ }\PYG{o}{[}출력파일\PYG{o}{]}
+\end{MintedVerbatim}
