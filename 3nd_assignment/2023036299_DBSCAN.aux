@@ -1,0 +1,59 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand*\HyPL@Entry[1]{}
+\HyPL@Entry{0<</S/D>>}
+\def\@LN@column{1}
+\providecommand \oddpage@label [2]{}
+\@writefile{toc}{\contentsline {section}{\numberline {1}알고리즘 요약}{1}{section.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.1}DBSCAN 알고리즘 개요}{1}{subsection.1.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.2}전체 순서도}{1}{subsection.1.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.3}핵심 자료구조}{1}{subsection.1.3}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces DBSCAN 분류기 전체 파이프라인}}{2}{figure.caption.1}\protected@file@percent }
+\def\@LN@column{1}
+\@writefile{toc}{\contentsline {section}{\numberline {2}각 함수별 코드 상세 설명}{3}{section.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}\texttt  {read\_data(file\_path)} --- 데이터 파싱}{3}{subsection.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}\texttt  {region\_query\_brute(points, i, eps\_sq)} --- 단순 영역 질의}{3}{subsection.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}\texttt  {build\_kdtree()} \& \texttt  {\_kdtree\_radius()} --- KD-tree 가속}{3}{subsection.2.3}\protected@file@percent }
+\def\@LN@column{1}
+\def\@LN@column{1}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.4}\texttt  {dbscan(points, eps, min\_pts, use\_kdtree, order)} --- DBSCAN 본체}{5}{subsection.2.4}\protected@file@percent }
+\def\@LN@column{1}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.5}\texttt  {select\_top\_n\_clusters(labels, num\_clusters, n)} --- 개수 강제 후처리}{6}{subsection.2.5}\protected@file@percent }
+\def\@LN@column{1}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.6}\texttt  {write\_clusters(input\_path, points, new\_labels, num\_kept, requested\_n)} --- 출력}{7}{subsection.2.6}\protected@file@percent }
+\def\@LN@column{1}
+\@writefile{toc}{\contentsline {section}{\numberline {3}소스 코드 컴파일 및 실행 방법}{8}{section.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}실행 환경}{8}{subsection.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}실행 명령어}{8}{subsection.3.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}실행 예시}{8}{subsection.3.3}\protected@file@percent }
+\def\@LN@column{1}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}파일 구조}{9}{subsection.3.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.5}실행 화면}{9}{subsection.3.5}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces 세 데이터셋에 대해 \texttt  {clustering.py} 를 권장 파라미터로 실행한 터미널 출력. 각 실행마다 raw 클러스터 수, kept 클러스터 수, 노이즈 개수, 그리고 클러스터 크기 분포가 출력된다.}}{9}{figure.caption.4}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces 실행 후 입력 파일과 같은 폴더에 \texttt  {input1\_cluster\_0..7.txt} (8개), \texttt  {input2\_cluster\_0..4.txt} (5개), \texttt  {input3\_cluster\_0..3.txt} (4개) 가 생성된 모습. 총 17개의 결과 파일이 요구치와 정확히 일치한다.}}{10}{figure.caption.5}\protected@file@percent }
+\def\@LN@column{1}
+\@writefile{toc}{\contentsline {section}{\numberline {4}개발 과정 및 설계 결정 상세 기록}{11}{section.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}자료구조 결정: dict per point vs 병렬 배열}{11}{subsection.4.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces 점 표현 방식 비교}}{11}{table.caption.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Core / Border / Noise 분류 방식: 별도 라벨 vs 알고리즘에 흡수}{11}{subsection.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}KD-tree vs Brute-force: 결과 동일성과 속도 비교}{11}{subsection.4.3}\protected@file@percent }
+\newlabel{sec:exp-kdtree}{{4.3}{11}{KD-tree vs Brute-force: 결과 동일성과 속도 비교}{subsection.4.3}{}}
+\def\@LN@column{1}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces KD-tree 도입 전후의 실행 시간과 결과 동일성}}{12}{table.caption.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}외부 루프 방문 순서가 점수에 주는 영향}{12}{subsection.4.4}\protected@file@percent }
+\newlabel{sec:exp-order}{{4.4}{12}{외부 루프 방문 순서가 점수에 주는 영향}{subsection.4.4}{}}
+\def\@LN@column{1}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces 외부 루프 방문 순서별 채점 점수 (모든 케이스에서 raw cluster 수, kept cluster 수, 노이즈 개수는 동일)}}{13}{table.caption.15}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5}출력 파일 개수 보호: \texttt  {m < n} 코너 케이스 대응}{13}{subsection.4.5}\protected@file@percent }
+\newlabel{sec:guard}{{4.5}{13}{출력 파일 개수 보호: \texttt {m < n} 코너 케이스 대응}{subsection.4.5}{}}
+\def\@LN@column{1}
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces m<n 강제 시나리오에서 생성된 5개의 결과 파일}}{14}{table.caption.20}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5}테스트 결과}{14}{section.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}세 데이터셋 채점 결과}{14}{subsection.5.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces 세 데이터셋에 대한 권장 파라미터 채점 결과}}{14}{table.caption.22}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}검증 항목}{14}{subsection.5.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces 과제 명세 요구사항 체크리스트}}{14}{table.caption.23}\protected@file@percent }
+\def\@LN@column{1}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}한계 및 해석}{15}{subsection.5.3}\protected@file@percent }
+\xdef \mintedoldcachechecksum{\detokenize{5BC95F7A3FD5AF855F67396E2485CF0E:11}}
+\gdef \@abspage@last{15}
